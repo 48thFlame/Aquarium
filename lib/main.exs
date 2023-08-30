@@ -3,7 +3,7 @@ defmodule Main do
     IO.write([IO.ANSI.home(), IO.ANSI.clear()])
   end
 
-  def term_dimensionns do
+  def term_dimensions do
     {:ok, rows_num} = :io.rows()
     {:ok, cols_num} = :io.columns()
     {rows_num, cols_num}
