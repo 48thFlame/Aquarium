@@ -5,12 +5,19 @@ defmodule Aquarium do
   """
   alias Aquarium.Thing
 
-  defstruct dim: {10, 20}, things: []
+  defstruct dim: {10, 20}, top: [], things: [], bottom: []
 
   @type t() :: %__MODULE__{
           dim: {integer(), integer()},
-          things: list(Aquarium.Thing.t())
+          top: list(Aquarium.Thing.t()),
+          things: list(Aquarium.Thing.t()),
+          bottom: list(Aquarium.Thing.t())
         }
+
+  defguardp is_valid_dim_num(num) when is_integer(num) and num > 2
+
+  defguard is_valid_dim(dim)
+           when is_valid_dim_num(elem(dim, 0)) and is_valid_dim_num(elem(dim, 1))
 
   @top_weight 0.3
 
@@ -32,22 +39,49 @@ defmodule Aquarium do
   end
 
   def new(dim = {rows_num, cols_num})
-      when is_integer(cols_num) and is_integer(rows_num) and cols_num > 2 and rows_num > 2 do
-    things =
-      for row <- 0..(rows_num - 1) do
-        for col <- 0..(cols_num - 1) do
-          if random_weight(@level_weight) do
-            Thing.new({row, col}, :fish)
-          end
-        end
-        |> Enum.reject(&is_nil/1)
-      end
-      |> List.flatten()
+      when is_valid_dim(dim) do
+    top = generate_top(dim)
+    things = generate_things({rows_num - 1, cols_num})
+    bottom = generate_bottom(dim)
 
     %Aquarium{
       dim: dim,
-      things: things
+      top: top,
+      things: things,
+      bottom: bottom
     }
+  end
+
+  defp generate_top(dim = {_, cols_num}) when is_valid_dim(dim) do
+    for col <- 0..(cols_num - 1) do
+      if random_weight(@top_weight) do
+        Thing.new({0, col}, :top)
+      end
+    end
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp generate_things(dim = {rows_num, cols_num}) when is_valid_dim(dim) do
+    # starts at 1 to give 0 to top, - 2 because - 1 for index + - 1 for bottom - EDIT: need not - 2 what? why? i don't understand but it works like this
+    for row <- 1..(rows_num - 1) do
+      for col <- 0..(cols_num - 1) do
+        if random_weight(@level_weight) do
+          Thing.new({row, col}, :fish)
+        end
+      end
+      |> Enum.reject(&is_nil/1)
+    end
+    |> List.flatten()
+  end
+
+  @spec generate_things({integer(), integer()}) :: [Thing.t()]
+  defp generate_bottom(dim = {rows_num, cols_num}) when is_valid_dim(dim) do
+    for col <- 0..(cols_num - 1) do
+      if random_weight(@bottom_weight) do
+        Thing.new({rows_num - 1, col}, :bottom)
+      end
+    end
+    |> Enum.reject(&is_nil/1)
   end
 
   @doc """
@@ -58,14 +92,14 @@ defmodule Aquarium do
       and join everything together.
   """
   @spec display(t()) :: String.t()
-  def display(%Aquarium{dim: {rows_num, cols_num}, things: things}) do
-    (List.duplicate(@empty, rows_num * cols_num)
-     |> replace_empty_with_things(things, cols_num)
-     |> Enum.chunk_every(cols_num)
-     |> Enum.map(fn row -> row ++ ["\n"] end)
-     |> Enum.map(fn row -> Enum.join(row, " ") end)
-     |> List.flatten()
-     |> Enum.join()) <> "\n"
+  def display(%Aquarium{dim: {rows_num, cols_num}, top: top, things: things, bottom: bottom}) do
+    List.duplicate(@empty, rows_num * cols_num)
+    |> replace_empty_with_things(top ++ things ++ bottom, cols_num)
+    |> Enum.chunk_every(cols_num)
+    |> Enum.map(fn row -> row ++ ["\n"] end)
+    |> Enum.map(fn row -> Enum.join(row, " ") end)
+    |> List.flatten()
+    |> Enum.join()
   end
 
   defp replace_empty_with_things(list_acc, [], _), do: list_acc
