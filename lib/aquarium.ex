@@ -21,8 +21,8 @@ defmodule Aquarium do
 
   @top_weight 0.3
 
-  @level_weight 0.2
-  @level_special_weight 0.19
+  @fish_weight 0.2
+  @fish_special_weight 0.19
 
   @bubble_weight 0.05
 
@@ -65,8 +65,14 @@ defmodule Aquarium do
     # starts at 1 to give 0 to top, - 2 because - 1 for index + - 1 for bottom - EDIT: need not - 2 what? why? i don't understand but it works like this
     for row <- 1..(rows_num - 1) do
       for col <- 0..(cols_num - 1) do
-        if random_weight(@level_weight) do
-          Thing.new({row, col}, :fish)
+        if random_weight(@fish_weight) do
+          pos = {row, col}
+
+          if random_weight(@fish_special_weight) do
+            Thing.new(pos, :special_fish)
+          else
+            Thing.new(pos, :fish)
+          end
         end
       end
       |> Enum.reject(&is_nil/1)
@@ -78,7 +84,13 @@ defmodule Aquarium do
   defp generate_bottom(dim = {rows_num, cols_num}) when is_valid_dim(dim) do
     for col <- 0..(cols_num - 1) do
       if random_weight(@bottom_weight) do
-        Thing.new({rows_num - 1, col}, :bottom)
+        pos = {rows_num - 1, col}
+
+        if random_weight(@bottom_special_weight) do
+          Thing.new(pos, :special_bottom)
+        else
+          Thing.new(pos, :bottom)
+        end
       end
     end
     |> Enum.reject(&is_nil/1)
