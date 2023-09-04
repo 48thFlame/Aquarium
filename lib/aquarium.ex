@@ -8,16 +8,13 @@ defmodule Aquarium do
   defstruct dim: {10, 20}, top: [], things: [], bottom: []
 
   @type t() :: %__MODULE__{
-          dim: {integer(), integer()},
-          top: list(Aquarium.Thing.t()),
-          things: list(Aquarium.Thing.t()),
-          bottom: list(Aquarium.Thing.t())
+          dim: coords(),
+          top: list(Thing.t()),
+          things: list(Thing.t()),
+          bottom: list(Thing.t())
         }
 
-  defguardp is_valid_dim_num(num) when is_integer(num) and num > 2
-
-  defguard is_valid_dim(dim)
-           when is_valid_dim_num(elem(dim, 0)) and is_valid_dim_num(elem(dim, 1))
+  @type coords() :: {integer(), integer()}
 
   @top_weight 0.3
 
@@ -31,6 +28,11 @@ defmodule Aquarium do
 
   @empty "\u3000"
 
+  defguardp is_valid_dim_num(num) when is_integer(num) and num > 2
+
+  defguard is_valid_dim(dim)
+           when is_valid_dim_num(elem(dim, 0)) and is_valid_dim_num(elem(dim, 1))
+
   @spec random_weight(float()) :: boolean()
   defp random_weight(weight) when is_float(weight) do
     rand = :rand.uniform()
@@ -38,6 +40,7 @@ defmodule Aquarium do
     rand < weight
   end
 
+  @spec new(coords()) :: Aquarium.t()
   def new(dim = {rows_num, cols_num})
       when is_valid_dim(dim) do
     top = generate_top(dim)
@@ -80,7 +83,7 @@ defmodule Aquarium do
     |> List.flatten()
   end
 
-  @spec generate_things({integer(), integer()}) :: [Thing.t()]
+  @spec generate_things(coords()) :: [Thing.t()]
   defp generate_bottom(dim = {rows_num, cols_num}) when is_valid_dim(dim) do
     for col <- 0..(cols_num - 1) do
       if random_weight(@bottom_weight) do
@@ -114,14 +117,62 @@ defmodule Aquarium do
     |> Enum.join()
   end
 
+  # base case - things is an empty list - put everyone in place.
+  # regular case - thing is still in the aquarium - put it in the acc
+  # edge case - thing is out of bounds - take it out and ignore
+  # (shouldn't be a need for edge case - should filter them out before calling this function)
   defp replace_empty_with_things(list_acc, [], _), do: list_acc
 
-  defp replace_empty_with_things(list_acc, things, cols_num) do
-    {%Thing{pos: {row, col}, face: face}, things} = List.pop_at(things, 0)
+  defp replace_empty_with_things(
+         list_acc,
+         [%Thing{pos: {row, col}, face: face} | rest],
+         cols_num
+       )
+       when row >= 0 and col >= 0 do
     i = cols_num * (row + 1) + col - cols_num
 
     list_acc = List.replace_at(list_acc, i, face)
 
-    replace_empty_with_things(list_acc, things, cols_num)
+    replace_empty_with_things(list_acc, rest, cols_num)
+  end
+
+  defp replace_empty_with_things(
+         list_acc,
+         [%Thing{pos: {row, col}} | rest],
+         cols_num
+       )
+       when row < 0 or col < 0 do
+    replace_empty_with_things(list_acc, rest, cols_num)
+  end
+
+  @spec update(Aquarium.t()) :: Aquarium.t()
+  def update(aquarium = %Aquarium{top: top, things: things, bottom: _bottom}) do
+    %Aquarium{
+      aquarium
+      | top: update_things(top, aquarium),
+        things: update_things(things, aquarium)
+    }
+  end
+
+  @spec update_things([Thing.t()], t()) :: [Thing.t()]
+  defp update_things(things, %Aquarium{dim: dim}) do
+    things
+    |> Enum.map(&update_thing(&1, dim))
+    |> filter_things(dim)
+  end
+
+  @spec update_thing(Thing.t(), coords()) :: Thing.t()
+  defp update_thing(thing = %Thing{pos: {row, col}}, {_rows_num, _cols_num}) do
+    %Thing{thing | pos: {row, col - 1}}
+  end
+
+  @spec filter_things([Thing.t()], coords()) :: [Thing.t()]
+  defp filter_things(things, dim) do
+    Enum.reject(things, &out_of_bounds?(&1, dim))
+  end
+
+  @spec out_of_bounds?(Thing.t(), coords()) :: boolean()
+  defp out_of_bounds?(%Thing{pos: {row, col}}, {rows_num, cols_num}) do
+    row < 0 or row >= rows_num or col < 0 or col >= cols_num
   end
 end
