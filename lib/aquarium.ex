@@ -68,13 +68,17 @@ defmodule Aquarium do
     # starts at 1 to give 0 to top, - 2 because - 1 for index + - 1 for bottom - EDIT: need not - 2 what? why? i don't understand but it works like this
     for row <- 1..(rows_num - 1) do
       for col <- 0..(cols_num - 1) do
-        if random_weight(@fish_weight) do
-          pos = {row, col}
+        pos = {row, col}
 
-          if random_weight(@fish_special_weight) do
-            Thing.new(pos, :special_fish)
-          else
-            Thing.new(pos, :fish)
+        if random_weight(@bubble_weight) do
+          Thing.new(pos, :bubble, 1)
+        else
+          if random_weight(@fish_weight) do
+            if random_weight(@fish_special_weight) do
+              Thing.new(pos, :special_fish, 0)
+            else
+              Thing.new(pos, :fish, -1)
+            end
           end
         end
       end
@@ -162,8 +166,12 @@ defmodule Aquarium do
   end
 
   @spec update_thing(Thing.t(), coords()) :: Thing.t()
-  defp update_thing(thing = %Thing{pos: {row, col}}, {_rows_num, _cols_num}) do
-    %Thing{thing | pos: {row, col - 1}}
+  defp update_thing(thing = %Thing{id: id}, {_rows_num, _cols_num}) do
+    if id == :bubble do
+      Thing.move_up_down(thing)
+    else
+      Thing.move_left_right(thing)
+    end
   end
 
   @spec filter_things([Thing.t()], coords()) :: [Thing.t()]
