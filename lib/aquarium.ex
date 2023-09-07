@@ -20,8 +20,10 @@ defmodule Aquarium do
 
   @fish_weight 0.2
   @fish_special_weight 0.19
+  @fish_speed {0.08, 0.2}
 
   @bubble_weight 0.05
+  @bubble_speed {0.09, 0.24}
 
   @bottom_weight 0.8
   @bottom_special_weight 0.12
@@ -38,6 +40,10 @@ defmodule Aquarium do
     rand = :rand.uniform()
 
     rand < weight
+  end
+
+  def random_range({min, max}) do
+    :rand.uniform() * (max - min) + min
   end
 
   @spec new(coords()) :: Aquarium.t()
@@ -71,13 +77,20 @@ defmodule Aquarium do
         pos = {row, col}
 
         if random_weight(@bubble_weight) do
-          Thing.new(pos, :bubble, 1)
+          Thing.new(pos, :bubble, random_range(@bubble_speed))
         else
           if random_weight(@fish_weight) do
+            speed =
+              if random_weight(0.5) do
+                1
+              else
+                -1
+              end * random_range(@fish_speed)
+
             if random_weight(@fish_special_weight) do
-              Thing.new(pos, :special_fish, 0)
+              Thing.new(pos, :special_fish, speed)
             else
-              Thing.new(pos, :fish, -1)
+              Thing.new(pos, :fish, speed)
             end
           end
         end
@@ -133,6 +146,9 @@ defmodule Aquarium do
          cols_num
        )
        when row >= 0 and col >= 0 do
+    row = round(row)
+    col = round(col)
+
     i = cols_num * (row + 1) + col - cols_num
 
     list_acc = List.replace_at(list_acc, i, face)

@@ -3,9 +3,9 @@ defmodule Aquarium.Thing do
   defstruct pos: {0, 0}, id: nil, speed: 0, face: ""
 
   @type t() :: %__MODULE__{
-          pos: {integer(), integer()},
+          pos: {number(), number()},
           id: atom(),
-          speed: integer(),
+          speed: number(),
           face: String.t()
         }
 
@@ -22,9 +22,7 @@ defmodule Aquarium.Thing do
   # 🟦
   # @empty "\u3000"
 
-  defguard is_valid_pos(pos) when is_integer(elem(pos, 0)) and is_integer(elem(pos, 1))
-
-  @spec new(tuple, :bottom | :bubble | :fish | :special_bottom | :special_fish | :top, integer) ::
+  @spec new(any, :bottom | :bubble | :fish | :special_bottom | :special_fish | :top, number) ::
           Aquarium.Thing.t()
   @doc """
     new() creates a new thing
@@ -35,28 +33,28 @@ defmodule Aquarium.Thing do
     new(pos, id, Enum.random(@fish), speed)
   end
 
-  def new(pos, id = :special_fish, speed) when is_valid_pos(pos) and is_integer(speed) do
+  def new(pos, id = :special_fish, speed) do
     new(pos, id, Enum.random(@special_fish), speed)
   end
 
-  def new(pos, id = :bottom, speed) when is_valid_pos(pos) and is_integer(speed) do
+  def new(pos, id = :bottom, speed) do
     new(pos, id, Enum.random(@bottom), speed)
   end
 
-  def new(pos, id = :special_bottom, speed) when is_valid_pos(pos) and is_integer(speed) do
+  def new(pos, id = :special_bottom, speed) do
     new(pos, id, Enum.random(@special_bottom), speed)
   end
 
-  def new(pos, id = :top, speed) when is_valid_pos(pos) and is_integer(speed) do
+  def new(pos, id = :top, speed) do
     new(pos, id, Enum.random(@top), speed)
   end
 
-  def new(pos, id = :bubble, speed) when is_valid_pos(pos) and is_integer(speed) do
+  def new(pos, id = :bubble, speed) do
     new(pos, id, @bubble, speed)
   end
 
   def new(pos, id, face, speed)
-      when is_valid_pos(pos) and is_atom(id) and is_integer(speed) and is_binary(face) do
+      when is_atom(id) and is_number(speed) and is_binary(face) do
     %__MODULE__{
       pos: pos,
       id: id,
