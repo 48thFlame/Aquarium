@@ -16,15 +16,18 @@ defmodule Aquarium do
 
   @type coords() :: {integer(), integer()}
 
-  @top_weight 0.3
+  @top_weight 0.285
+  @top_speed {0.07, 0.23}
+  @top_spawn_weight 0.04
 
-  @fish_weight 0.2
+  @fish_weight 0.19
   @fish_special_weight 0.19
   @fish_speed {0.1, 0.25}
-  @fish_spawn_weight 0.15
+  @fish_spawn_weight 0.18
 
-  @bubble_weight 0.05
+  @bubble_weight 0.09
   @bubble_speed {0.09, 0.24}
+  @bubble_spawn_weight 0.09
 
   @bottom_weight 0.8
   @bottom_special_weight 0.12
@@ -43,6 +46,7 @@ defmodule Aquarium do
     rand < weight
   end
 
+  @spec random_range({number, number}) :: float
   def random_range({min, max}) do
     :rand.uniform() * (max - min) + min
   end
@@ -62,15 +66,19 @@ defmodule Aquarium do
     }
   end
 
+  @spec generate_top(coords()) :: [Thing.t()]
   defp generate_top(dim = {_, cols_num}) when is_valid_dim(dim) do
     for col <- 0..(cols_num - 1) do
       if random_weight(@top_weight) do
-        Thing.new({0, col}, :top)
+        speed = random_range(@top_speed)
+
+        Thing.new({0, col}, :top, speed)
       end
     end
     |> Enum.reject(&is_nil/1)
   end
 
+  @spec generate_things(coords()) :: [Thing.t()]
   defp generate_things(dim = {rows_num, cols_num}) when is_valid_dim(dim) do
     # starts at 1 to give 0 to top, - 2 because - 1 for index + - 1 for bottom - EDIT: need not - 2 what? why? i don't understand but it works like this
     for row <- 1..(rows_num - 1) do
@@ -96,7 +104,7 @@ defmodule Aquarium do
     |> List.flatten()
   end
 
-  @spec generate_things(coords()) :: [Thing.t()]
+  @spec generate_bottom(coords()) :: [Thing.t()]
   defp generate_bottom(dim = {rows_num, cols_num}) when is_valid_dim(dim) do
     for col <- 0..(cols_num - 1) do
       if random_weight(@bottom_weight) do
@@ -134,6 +142,8 @@ defmodule Aquarium do
   # regular case - thing is still in the aquarium - put it in the acc
   # edge case - thing is out of bounds - take it out and ignore
   # (shouldn't be a need for edge case - should filter them out before calling this function)
+
+  @spec replace_empty_with_things([String.t()], [Thing.t()], integer()) :: [String.t()]
   defp replace_empty_with_things(list_acc, [], _), do: list_acc
 
   defp replace_empty_with_things(
@@ -165,8 +175,9 @@ defmodule Aquarium do
   def update(aquarium = %Aquarium{top: top, things: things, bottom: _bottom}) do
     %Aquarium{
       aquarium
-      | top: update_things(top, aquarium),
-        things: update_things(things, aquarium) ++ spawn_fish(aquarium)
+      | top: [spawn_top() | top] |> update_things(aquarium),
+        things:
+          ([spawn_bubble(aquarium), spawn_fish(aquarium)] ++ things) |> update_things(aquarium)
     }
   end
 
@@ -193,9 +204,33 @@ defmodule Aquarium do
 
   @spec out_of_bounds?(Thing.t(), coords()) :: boolean()
   defp out_of_bounds?(%Thing{pos: {row, col}}, {rows_num, cols_num}) do
-    row < 0 or row >= rows_num or col < 0 or col >= cols_num
+    row < 0 or row > rows_num - 1 or col < 0 or col > cols_num - 1
   end
 
+  @spec spawn_top() :: Thing.t()
+  defp spawn_top() do
+    if random_weight(@top_spawn_weight) do
+      speed = random_range(@top_speed)
+
+      Thing.new({0, 0}, :top, speed)
+    else
+      Thing.new({-1, -1}, :fish, 0)
+    end
+  end
+
+  @spec spawn_bubble(Aquarium.t()) :: Thing.t()
+  defp spawn_bubble(%Aquarium{dim: {rows_num, cols_num}}) do
+    if random_weight(@bubble_spawn_weight) do
+      col = random_range({0, cols_num - 1})
+      speed = random_range(@bubble_speed)
+
+      Thing.new({rows_num - 1, col}, :bubble, speed)
+    else
+      Thing.new({-1, -1}, :fish, 0)
+    end
+  end
+
+  @spec spawn_fish(Aquarium.t()) :: Thing.t()
   defp spawn_fish(%Aquarium{dim: {rows_num, cols_num}}) do
     if random_weight(@fish_spawn_weight) do
       row = random_range({1, rows_num - 2})
@@ -210,9 +245,9 @@ defmodule Aquarium do
 
       speed = -random_range(@fish_speed)
 
-      [Thing.new({row, col}, id, speed)]
+      Thing.new({row, col}, id, speed)
     else
-      []
+      Thing.new({-1, -1}, :fish, 0)
     end
   end
 end
