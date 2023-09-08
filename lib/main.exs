@@ -15,7 +15,7 @@ defmodule Main do
     clear_screen()
 
     Aquarium.display(aquarium) |> IO.puts()
-    Process.sleep(250)
+    Process.sleep(50)
 
     if count <= 0 do
       main_loop(nil)
@@ -31,7 +31,7 @@ defmodule Main do
     aquarium =
       Aquarium.new({rows_num, cols_num})
 
-    main_loop(aquarium, cols_num)
+    main_loop(aquarium, 2400)
   end
 end
 
