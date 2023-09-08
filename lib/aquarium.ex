@@ -20,7 +20,8 @@ defmodule Aquarium do
 
   @fish_weight 0.2
   @fish_special_weight 0.19
-  @fish_speed {0.08, 0.2}
+  @fish_speed {0.1, 0.25}
+  @fish_spawn_weight 0.15
 
   @bubble_weight 0.05
   @bubble_speed {0.09, 0.24}
@@ -80,12 +81,7 @@ defmodule Aquarium do
           Thing.new(pos, :bubble, random_range(@bubble_speed))
         else
           if random_weight(@fish_weight) do
-            speed =
-              if random_weight(0.5) do
-                1
-              else
-                -1
-              end * random_range(@fish_speed)
+            speed = -random_range(@fish_speed)
 
             if random_weight(@fish_special_weight) do
               Thing.new(pos, :special_fish, speed)
@@ -170,7 +166,7 @@ defmodule Aquarium do
     %Aquarium{
       aquarium
       | top: update_things(top, aquarium),
-        things: update_things(things, aquarium)
+        things: update_things(things, aquarium) ++ spawn_fish(aquarium)
     }
   end
 
@@ -198,5 +194,25 @@ defmodule Aquarium do
   @spec out_of_bounds?(Thing.t(), coords()) :: boolean()
   defp out_of_bounds?(%Thing{pos: {row, col}}, {rows_num, cols_num}) do
     row < 0 or row >= rows_num or col < 0 or col >= cols_num
+  end
+
+  defp spawn_fish(%Aquarium{dim: {rows_num, cols_num}}) do
+    if random_weight(@fish_spawn_weight) do
+      row = random_range({1, rows_num - 2})
+      col = cols_num - 1
+
+      id =
+        if random_weight(@fish_special_weight) do
+          :special_fish
+        else
+          :fish
+        end
+
+      speed = -random_range(@fish_speed)
+
+      [Thing.new({row, col}, id, speed)]
+    else
+      []
+    end
   end
 end
