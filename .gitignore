@@ -27,3 +27,6 @@ aquarium-*.tar
 
 # vscode folder
 /.vscode/
+
+# Escript build
+aquarium
